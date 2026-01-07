@@ -8,6 +8,7 @@ discovery:
   - wyoming
 arch:
   - aarch64
+  - amd64
 ports:
   "10301/tcp": null
 schema:
