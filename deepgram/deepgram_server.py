@@ -79,29 +79,27 @@ class State:
 
 class EventHandler(AsyncEventHandler):
     WYOMING_INFO = Info(
-        asr=AsrProgram(
-            name="Deepgram",
-            description="A speech recognition toolkit",
-            attribution=Attribution(
+        asr=[
+            AsrProgram(
                 name="Deepgram",
-                url="https://deepgram.com",
-            ),
-            installed=True,
-            version='1.0',
-            models=[
-                AsrModel(
-                    name='general-nova-3',
-                    description='Nova 3',
-                    attribution=Attribution(
-                        name="Deepgram",
-                        url="https://deepgram.com",
-                    ),
-                    installed=True,
-                    version=None,
-                    languages=['en'],
-                )
-            ]
-        )
+                description="A speech recognition toolkit",
+                attribution=Attribution(
+                    name="Deepgram",
+                    url="https://deepgram.com",
+                ),
+                models=[
+                    AsrModel(
+                        name='general-nova-3',
+                        description='Nova 3',
+                        attribution=Attribution(
+                            name="Deepgram",
+                            url="https://deepgram.com",
+                        ),
+                        languages=['en'],
+                    )
+                ]
+            )
+        ]
     )
 
     def __init__(
