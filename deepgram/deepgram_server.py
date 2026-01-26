@@ -87,6 +87,8 @@ class EventHandler(AsyncEventHandler):
                     name="Deepgram",
                     url="https://deepgram.com",
                 ),
+                installed=True,
+                version='1.0',
                 models=[
                     AsrModel(
                         name='general-nova-3',
@@ -95,6 +97,8 @@ class EventHandler(AsyncEventHandler):
                             name="Deepgram",
                             url="https://deepgram.com",
                         ),
+                        installed=True,
+                        version='1.0',
                         languages=['en'],
                     )
                 ]
