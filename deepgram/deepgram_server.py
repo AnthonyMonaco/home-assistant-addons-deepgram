@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import logging
-from deepgram import AsyncDeepgramClient, PrerecordedOptions, FileSource
+from deepgram import AsyncDeepgramClient
 from wyoming.event import Event
 from wyoming.server import AsyncEventHandler, AsyncServer
 from wyoming.info import Info, Describe, AsrProgram, AsrModel, Attribution
@@ -23,38 +23,40 @@ class DeepgramSTT:
         Send audio data to Deepgram and return transcription.
         """
         try:
-            options: PrerecordedOptions = PrerecordedOptions(
+            # SDK v5 API uses direct parameters instead of PrerecordedOptions object
+            response = await self.dg_client.listen.v1.media.transcribe_file(
+                request=audio_data,
                 model="nova-3",
                 smart_format=True,
-                encoding='linear16',
+                encoding="linear16",
                 sample_rate=sample_rate,
                 channels=1,
-                language='en-US',
+                language="en-US",
                 punctuate=True,
             )
-            payload: FileSource = {"buffer": audio_data, "mimetype": "audio/wav"}
 
-            response = await self.dg_client.listen.asyncrest.v("1").transcribe_file(payload, options)
-
-            # Safe dictionary access with validation
-            if not response or "results" not in response:
+            # Safe attribute/dictionary access with validation
+            if not response or not hasattr(response, 'results'):
                 logger.error("Invalid response from Deepgram: missing 'results'")
                 return ""
 
-            results = response.get("results", {})
-            channels = results.get("channels", [])
-
-            if not channels or len(channels) == 0:
+            results = response.results
+            if not hasattr(results, 'channels') or not results.channels:
                 logger.error("Invalid response from Deepgram: no channels found")
                 return ""
 
-            alternatives = channels[0].get("alternatives", [])
+            channels = results.channels
+            if len(channels) == 0:
+                logger.error("Invalid response from Deepgram: empty channels")
+                return ""
+
+            alternatives = channels[0].alternatives if hasattr(channels[0], 'alternatives') else []
 
             if not alternatives or len(alternatives) == 0:
                 logger.error("Invalid response from Deepgram: no alternatives found")
                 return ""
 
-            transcript = alternatives[0].get("transcript", "")
+            transcript = alternatives[0].transcript if hasattr(alternatives[0], 'transcript') else ""
 
             return transcript
         except Exception as e:
