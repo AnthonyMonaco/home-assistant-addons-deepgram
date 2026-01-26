@@ -5,7 +5,7 @@ import logging
 from deepgram import AsyncDeepgramClient
 from wyoming.event import Event
 from wyoming.server import AsyncEventHandler, AsyncServer
-from wyoming.info import Info, Describe, AsrProgram, AsrModel, Attribution
+from wyoming.info import Info, AsrProgram, AsrModel, Attribution
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -79,31 +79,29 @@ class State:
 
 class EventHandler(AsyncEventHandler):
     WYOMING_INFO = Info(
-        asr=[
-            AsrProgram(
+        asr=AsrProgram(
+            name="Deepgram",
+            description="A speech recognition toolkit",
+            attribution=Attribution(
                 name="Deepgram",
-                description="A speech recognition toolkit",
-                attribution=Attribution(
-                    name="Deepgram",
-                    url="https://deepgram.com",
-                ),
-                installed=True,
-                version='1.0',
-                models=[
-                    AsrModel(
-                        name='general-nova-3',
-                        description='Nova 3',
-                        attribution=Attribution(
-                            name="Deepgram",
-                            url="https://deepgram.com",
-                        ),
-                        installed=True,
-                        version='1.0',
-                        languages=['en'],
-                    )
-                ]
-            )
-        ]
+                url="https://deepgram.com",
+            ),
+            installed=True,
+            version='1.0',
+            models=[
+                AsrModel(
+                    name='general-nova-3',
+                    description='Nova 3',
+                    attribution=Attribution(
+                        name="Deepgram",
+                        url="https://deepgram.com",
+                    ),
+                    installed=True,
+                    version='1.0',
+                    languages=['en'],
+                )
+            ]
+        )
     )
 
     def __init__(
