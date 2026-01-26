@@ -9,8 +9,6 @@ COPY rootfs /
 
 COPY deepgram_server.py /app
 
-HEALTHCHECK --start-period=10m \
-    CMD echo '{ "type": "describe" }' \
-        | nc -w 1 localhost 10301 \
-        | grep -q "deepgram_server" \
+HEALTHCHECK --start-period=10m --interval=30s --timeout=5s --retries=3 \
+    CMD python3 -c "import socket; s = socket.socket(); s.settimeout(2); s.connect(('localhost', 10301)); s.sendall(b'{\"type\":\"describe\"}'); data = s.recv(1024); s.close(); exit(0 if b'deepgram' in data.lower() else 1)" \
         || exit 1

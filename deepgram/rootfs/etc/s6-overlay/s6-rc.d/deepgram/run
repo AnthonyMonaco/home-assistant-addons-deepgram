@@ -5,18 +5,9 @@
 # Start Deepgram service
 # ==============================================================================
 
-model="$(bashio::config 'model')"
-if [ "${model}" = 'custom' ]; then
-    # Override with custom model
-    model="$(bashio::config 'custom_model')"
-    if [ -z "${model}" ]; then
-      bashio::exit.nok "Custom model is not set"
-    fi
+if ! bashio::config.has_value 'api_key'; then
+    bashio::exit.nok "API key is required. Please configure it in the addon settings."
 fi
 
-if bashio::config.true 'debug_logging'; then
-    flags+=('--debug')
-fi
-
-# shellcheck disable=SC2068
+bashio::log.info "Starting Deepgram Wyoming STT server..."
 exec python3 /app/deepgram_server.py
