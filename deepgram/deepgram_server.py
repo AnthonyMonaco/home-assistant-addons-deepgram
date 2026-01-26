@@ -16,7 +16,7 @@ OPTIONS_FILE = "/data/options.json"
 class DeepgramSTT:
     def __init__(self):
         deepgram_api_key = load_api_key()
-        self.dg_client = AsyncDeepgramClient(deepgram_api_key)
+        self.dg_client = AsyncDeepgramClient(api_key=deepgram_api_key)
 
     async def transcribe(self, audio_data: bytes, sample_rate: int):
         """
