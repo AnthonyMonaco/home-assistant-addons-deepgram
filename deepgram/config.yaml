@@ -1,7 +1,8 @@
 name: Deepgram
-description: Speech-to-text with Deepgram. Be sure to get an API key from Deepgram and set it in the configuration.
+description: Speech-to-text with Deepgram. Be sure to get an API key from
+             Deepgram and set it in the configuration.
 url: https://github.com/brian-makes-things/home-assistant-addons/deepgram
-version: "0.1.0"
+version: "0.2.0"
 slug: "deepgram"
 init: false
 discovery:
@@ -9,6 +10,7 @@ discovery:
 arch:
   - aarch64
   - amd64
+  - i386
 ports:
   "10301/tcp": null
 schema:
