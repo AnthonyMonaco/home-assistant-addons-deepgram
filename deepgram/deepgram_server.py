@@ -73,6 +73,7 @@ def make_wyoming_info() -> Info:
                             url="https://deepgram.com"
                         ),
                         installed=True,
+                        version="3.0.0",
                         languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
                     ),
                     AsrModel(
@@ -83,6 +84,7 @@ def make_wyoming_info() -> Info:
                             url="https://deepgram.com"
                         ),
                         installed=True,
+                        version="2.0.0",
                         languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
                     )
                 ]
