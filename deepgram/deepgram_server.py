@@ -1,190 +1,374 @@
+#!/usr/bin/env python3
+"""
+Wyoming Protocol Server for Deepgram Speech-to-Text
+Built for Home Assistant addon integration
+"""
 import asyncio
 import json
-import os
 import logging
-from deepgram import AsyncDeepgramClient
+from functools import partial
+from pathlib import Path
+
+from deepgram import DeepgramClient, PrerecordedOptions, DeepgramClientOptions
+from wyoming.asr import Transcript
+from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.event import Event
+from wyoming.info import AsrModel, AsrProgram, Attribution, Info
 from wyoming.server import AsyncEventHandler, AsyncServer
-from wyoming.info import Info, AsrProgram, AsrModel, Attribution
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+_LOGGER = logging.getLogger(__name__)
 
-OPTIONS_FILE = "/data/options.json"
+# Configuration
+OPTIONS_FILE = Path("/data/options.json")
 
-class DeepgramSTT:
-    def __init__(self):
-        deepgram_api_key = load_api_key()
-        self.dg_client = AsyncDeepgramClient(api_key=deepgram_api_key)
 
-    async def transcribe(self, audio_data: bytes, sample_rate: int):
-        """
-        Send audio data to Deepgram and return transcription.
-        """
-        try:
-            # SDK v5 API uses direct parameters instead of PrerecordedOptions object
-            response = await self.dg_client.listen.v1.media.transcribe_file(
-                request=audio_data,
-                model="nova-3",
-                smart_format=True,
-                encoding="linear16",
-                sample_rate=sample_rate,
-                channels=1,
-                language="en-US",
-                punctuate=True,
-            )
+def load_config():
+    """Load configuration from Home Assistant addon options."""
+    try:
+        with open(OPTIONS_FILE, "r") as f:
+            options = json.load(f)
 
-            # Safe attribute/dictionary access with validation
-            if not response or not hasattr(response, 'results'):
-                logger.error("Invalid response from Deepgram: missing 'results'")
-                return ""
+        api_key = options.get("api_key", "").strip()
+        if not api_key:
+            raise ValueError("API key is required but not configured")
 
-            results = response.results
-            if not hasattr(results, 'channels') or not results.channels:
-                logger.error("Invalid response from Deepgram: no channels found")
-                return ""
+        _LOGGER.info(f"✅ API Key loaded: {api_key[:4]}****")
+        return {"api_key": api_key}
 
-            channels = results.channels
-            if len(channels) == 0:
-                logger.error("Invalid response from Deepgram: empty channels")
-                return ""
+    except FileNotFoundError:
+        _LOGGER.error(f"❌ Options file not found: {OPTIONS_FILE}")
+        raise
+    except json.JSONDecodeError as e:
+        _LOGGER.error(f"❌ Error parsing options.json: {e}")
+        raise
+    except Exception as e:
+        _LOGGER.error(f"❌ Error loading configuration: {e}")
+        raise
 
-            alternatives = channels[0].alternatives if hasattr(channels[0], 'alternatives') else []
 
-            if not alternatives or len(alternatives) == 0:
-                logger.error("Invalid response from Deepgram: no alternatives found")
-                return ""
-
-            transcript = alternatives[0].transcript if hasattr(alternatives[0], 'transcript') else ""
-
-            return transcript
-        except Exception as e:
-            logger.error(f"Error during transcription: {e}")
-            return ""
-
-class State:
-    def __init__(self):
-        self.sessions = {}
-
-    def get_session(self, session_id):
-        return self.sessions.get(session_id)
-
-    def set_session(self, session_id, data):
-        self.sessions[session_id] = data
-
-    def delete_session(self, session_id):
-        if session_id in self.sessions:
-            del self.sessions[session_id]
-
-def make_info() -> Info:
-    """Create Wyoming protocol info."""
+def make_wyoming_info() -> Info:
+    """Create Wyoming protocol info describing this ASR service."""
     return Info(
         asr=[
             AsrProgram(
-                name="Deepgram",
-                description="Wyoming STT proxy to Deepgram",
+                name="deepgram",
+                description="Deepgram cloud-based speech recognition",
                 attribution=Attribution(
                     name="Deepgram",
-                    url="https://deepgram.com",
+                    url="https://deepgram.com"
                 ),
                 installed=True,
                 version="3.0.0",
                 models=[
                     AsrModel(
-                        name='nova-3',
-                        description='Deepgram Nova-3',
+                        name="nova-3",
+                        description="Deepgram Nova-3 (newest, most accurate)",
                         attribution=Attribution(
                             name="Deepgram",
-                            url="https://deepgram.com",
+                            url="https://deepgram.com"
                         ),
                         installed=True,
-                        version="3.0.0",
-                        languages=['en', 'en-US'],
+                        languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
+                    ),
+                    AsrModel(
+                        name="nova-2",
+                        description="Deepgram Nova-2 (balanced)",
+                        attribution=Attribution(
+                            name="Deepgram",
+                            url="https://deepgram.com"
+                        ),
+                        installed=True,
+                        languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
                     )
-                ],
+                ]
             )
         ]
     )
 
-class EventHandler(AsyncEventHandler):
+
+class DeepgramEventHandler(AsyncEventHandler):
+    """Handle Wyoming protocol events and interface with Deepgram API."""
+
     def __init__(
         self,
         wyoming_info: Info,
+        cli_args,
         *args,
-        **kwargs,
+        **kwargs
     ) -> None:
-        """Initialize Wyoming event handler."""
-        logger.info(f"✅ New connection")
-
         super().__init__(*args, **kwargs)
 
-        self._info = wyoming_info
-        state = State()
-        self.stt = DeepgramSTT()
-        self.audio_data = b""
-        self.sample_rate = 16000  # Default sample rate; can be adjusted
-        self.wyoming_info_event = wyoming_info.event()
+        _LOGGER.info("✅ New client connection established")
+
+        self.cli_args = cli_args
+        self.wyoming_info = wyoming_info
+        self.client_id = id(self)
+
+        # Initialize Deepgram client
+        config = DeepgramClientOptions(
+            api_key=cli_args["api_key"],
+            options={"keepalive": "true"}
+        )
+        self.deepgram = DeepgramClient(api_key=cli_args["api_key"], config=config)
+
+        # Audio buffer for current transcription
+        self.audio_buffer = bytearray()
+
+        # Audio format settings (defaults from Wyoming)
+        self.sample_rate = 16000
+        self.sample_width = 2  # 16-bit
+        self.channels = 1      # mono
+
+        # Transcription settings
+        self.language = "en-US"
+        self.model = "nova-3"
+
+        _LOGGER.debug(f"Handler initialized for client {self.client_id}")
 
     async def handle_event(self, event: Event) -> bool:
-        """Process and log all incoming Wyoming protocol events."""
+        """
+        Process Wyoming protocol events.
+
+        Returns:
+            bool: True to continue, False to close connection
+        """
         try:
+            # Describe request - send info about this ASR service
             if event.type == "describe":
-                logger.info("📤 Responding to describe event.")
-                await self.write_event(self.wyoming_info_event)
+                _LOGGER.info("📋 Received describe request")
+                await self.write_event(self.wyoming_info.event())
+                _LOGGER.debug("✅ Sent info response")
+                return True
+
+            # Transcribe request - set transcription parameters
+            elif event.type == "transcribe":
+                _LOGGER.info("🎤 Starting new transcription")
+                self.audio_buffer.clear()
+
+                # Parse transcription parameters
+                if event.data:
+                    self.language = event.data.get("language", self.language)
+                    self.model = event.data.get("model", self.model)
+                    _LOGGER.debug(f"Using model: {self.model}, language: {self.language}")
+
+                return True
+
+            # Audio start - configure audio format
+            elif event.type == "audio-start":
+                if event.data:
+                    self.sample_rate = event.data.get("rate", self.sample_rate)
+                    self.sample_width = event.data.get("width", self.sample_width)
+                    self.channels = event.data.get("channels", self.channels)
+
+                    _LOGGER.debug(
+                        f"Audio format: {self.sample_rate}Hz, "
+                        f"{self.sample_width * 8}-bit, "
+                        f"{self.channels} channel(s)"
+                    )
+                return True
+
+            # Audio chunk - accumulate audio data
             elif event.type == "audio-chunk":
-                self.audio_data += event.payload
+                chunk = AudioChunk.from_event(event)
+                self.audio_buffer.extend(chunk.audio)
+                return True
+
+            # Audio stop - transcribe accumulated audio
             elif event.type == "audio-stop":
-                logger.info(f"Received Wyoming event: {event.type} - Data: {event.data}")
-                # Send to Deepgram and get transcription
-                text = await self.stt.transcribe(self.audio_data, self.sample_rate)
-                result_event = Event(type="transcript", data={"text": text})
+                _LOGGER.info(f"🎧 Received {len(self.audio_buffer)} bytes of audio")
 
-                logger.info(f"Sending Transcript Event: {text}")
+                # Perform transcription
+                text = await self._transcribe_audio()
 
-                await self.write_event(result_event)
-                self.audio_data = b""  # Reset for next transcription
+                # Send transcript back
+                transcript_event = Transcript(text=text).event()
+                await self.write_event(transcript_event)
+
+                _LOGGER.info(f"📝 Transcription: '{text}'")
+
+                # Clear buffer for next transcription
+                self.audio_buffer.clear()
+                return True
+
             else:
-                logger.info(f"Received Wyoming event: {event.type} - Data: {event.data}")
+                _LOGGER.warning(f"⚠️  Unknown event type: {event.type}")
+                return True
 
-            return True
         except Exception as e:
-            logger.error(f"Error handling event {event.type}: {e}")
+            _LOGGER.error(f"❌ Error handling event {event.type}: {e}", exc_info=True)
             return False
 
-def load_api_key():
-    """Load the API key from the options.json file."""
+    async def _transcribe_audio(self) -> str:
+        """
+        Send audio to Deepgram and return transcription.
+
+        Returns:
+            str: Transcribed text, or empty string on error
+        """
+        if not self.audio_buffer:
+            _LOGGER.warning("⚠️  No audio data to transcribe")
+            return ""
+
+        try:
+            # Convert PCM to WAV format
+            wav_data = self._pcm_to_wav(
+                bytes(self.audio_buffer),
+                self.sample_rate,
+                self.sample_width,
+                self.channels
+            )
+
+            # Prepare Deepgram options
+            options = PrerecordedOptions(
+                model=self.model,
+                language=self.language,
+                smart_format=True,
+                punctuate=True,
+                diarize=False,
+                utterances=False,
+            )
+
+            _LOGGER.debug(f"Sending {len(wav_data)} bytes to Deepgram")
+
+            # Call Deepgram API (run in thread to avoid blocking)
+            response = await asyncio.to_thread(
+                self._call_deepgram_sync,
+                wav_data,
+                options
+            )
+
+            # Extract transcript from response
+            text = self._extract_transcript(response)
+            return text
+
+        except Exception as e:
+            _LOGGER.error(f"❌ Transcription failed: {e}", exc_info=True)
+            return ""
+
+    def _call_deepgram_sync(self, wav_data: bytes, options: PrerecordedOptions):
+        """
+        Synchronous call to Deepgram API (runs in thread).
+        """
+        return self.deepgram.listen.rest.v("1").transcribe_file(
+            {"buffer": wav_data, "mimetype": "audio/wav"},
+            options
+        )
+
+    def _extract_transcript(self, response) -> str:
+        """
+        Extract transcript text from Deepgram response.
+
+        Args:
+            response: Deepgram API response object
+
+        Returns:
+            str: Transcribed text
+        """
+        try:
+            # Navigate response structure
+            if hasattr(response, "results"):
+                results = response.results
+                channels = results.channels if hasattr(results, "channels") else []
+
+                if channels and len(channels) > 0:
+                    alternatives = channels[0].alternatives if hasattr(channels[0], "alternatives") else []
+
+                    if alternatives and len(alternatives) > 0:
+                        transcript = alternatives[0].transcript if hasattr(alternatives[0], "transcript") else ""
+                        return transcript.strip()
+
+            # Fallback: try dictionary access
+            if isinstance(response, dict):
+                return (
+                    response.get("results", {})
+                    .get("channels", [{}])[0]
+                    .get("alternatives", [{}])[0]
+                    .get("transcript", "")
+                    .strip()
+                )
+
+            _LOGGER.warning("⚠️  Could not extract transcript from response")
+            return ""
+
+        except Exception as e:
+            _LOGGER.error(f"❌ Error extracting transcript: {e}")
+            return ""
+
+    def _pcm_to_wav(
+        self,
+        pcm_data: bytes,
+        sample_rate: int,
+        sample_width: int,
+        channels: int
+    ) -> bytes:
+        """
+        Convert raw PCM audio to WAV format.
+
+        Args:
+            pcm_data: Raw PCM audio bytes
+            sample_rate: Sample rate in Hz
+            sample_width: Bytes per sample (2 for 16-bit)
+            channels: Number of audio channels
+
+        Returns:
+            bytes: WAV file data
+        """
+        import io
+        import wave
+
+        buffer = io.BytesIO()
+
+        with wave.open(buffer, "wb") as wav_file:
+            wav_file.setnchannels(channels)
+            wav_file.setsampwidth(sample_width)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(pcm_data)
+
+        return buffer.getvalue()
+
+    async def disconnect(self) -> None:
+        """Clean up when client disconnects."""
+        _LOGGER.info(f"👋 Client {self.client_id} disconnected")
+        await super().disconnect()
+
+
+async def main() -> None:
+    """Start the Wyoming server."""
+    # Load configuration
     try:
-        with open(OPTIONS_FILE, "r") as f:
-            options = json.load(f)
-        api_key = options.get("api_key", "")
-
-        if not api_key:
-            logger.error("⚠️ API key is missing! Set it in the Deepgram addon settings.")
-            raise ValueError("API key is required but not configured")
-
-        logger.info(f"✅ API Key Loaded: {api_key[:4]}****")
-        return api_key
-    except FileNotFoundError:
-        logger.error(f"Options file not found: {OPTIONS_FILE}")
-        raise
-    except json.JSONDecodeError as e:
-        logger.error(f"Error parsing options.json: {e}")
-        raise
+        config = load_config()
     except Exception as e:
-        logger.error(f"Error reading options.json: {e}")
-        raise
+        _LOGGER.error(f"❌ Failed to load configuration: {e}")
+        return
 
-async def main():
-    """Starts the Wyoming Deepgram STT server using DeepgramServer."""
-    from functools import partial
+    # Create Wyoming info
+    wyoming_info = make_wyoming_info()
 
-    server = AsyncServer.from_uri('tcp://0.0.0.0:10301')
+    # Start server
+    server_uri = "tcp://0.0.0.0:10301"
+    _LOGGER.info(f"🚀 Starting Deepgram Wyoming server on {server_uri}")
+
+    server = AsyncServer.from_uri(server_uri)
+
     try:
-        logger.info('Starting Wyoming Server')
-        await server.run(partial(EventHandler, make_info()))
-    except asyncio.CancelledError:
-        await server.stop()
+        await server.run(
+            partial(DeepgramEventHandler, wyoming_info, config)
+        )
+    except KeyboardInterrupt:
+        _LOGGER.info("🛑 Received shutdown signal")
+    except Exception as e:
+        _LOGGER.error(f"❌ Server error: {e}", exc_info=True)
+    finally:
+        _LOGGER.info("👋 Server stopped")
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
