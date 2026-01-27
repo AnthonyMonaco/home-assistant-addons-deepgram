@@ -18,7 +18,7 @@ from wyoming.server import AsyncEventHandler, AsyncServer
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 _LOGGER = logging.getLogger(__name__)
@@ -53,39 +53,27 @@ def load_config():
 
 def make_wyoming_info() -> Info:
     """Create Wyoming protocol info describing this ASR service."""
+    deepgram_attribution = Attribution(
+        name="Deepgram",
+        url="https://deepgram.com"
+    )
+
     return Info(
         asr=[
             AsrProgram(
                 name="deepgram",
-                attribution=Attribution(
-                    name="Deepgram",
-                    url="https://deepgram.com"
-                ),
+                attribution=deepgram_attribution,
                 installed=True,
                 description="Deepgram cloud-based speech recognition",
                 version="3.0.0",
                 models=[
                     AsrModel(
                         name="nova-3",
-                        attribution=Attribution(
-                            name="Deepgram",
-                            url="https://deepgram.com"
-                        ),
+                        attribution=deepgram_attribution,
                         installed=True,
-                        description="Deepgram Nova-3 (newest, most accurate)",
+                        description="Deepgram Nova-3",
                         version="3.0.0",
-                        languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
-                    ),
-                    AsrModel(
-                        name="nova-2",
-                        attribution=Attribution(
-                            name="Deepgram",
-                            url="https://deepgram.com"
-                        ),
-                        installed=True,
-                        description="Deepgram Nova-2 (balanced)",
-                        version="2.0.0",
-                        languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
+                        languages=["en"]
                     )
                 ]
             )
@@ -143,7 +131,9 @@ class DeepgramEventHandler(AsyncEventHandler):
             # Describe request - send info about this ASR service
             if event.type == "describe":
                 _LOGGER.info("📋 Received describe request")
-                await self.write_event(self.wyoming_info.event())
+                info_event = self.wyoming_info.event()
+                _LOGGER.debug(f"Sending info event: {info_event}")
+                await self.write_event(info_event)
                 _LOGGER.debug("✅ Sent info response")
                 return True
 
