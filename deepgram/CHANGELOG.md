@@ -3,6 +3,8 @@
 ### Bug Fixes
 - Fixed AttributeError when optional string parameters (keywords, search, replace) are passed as lists or None values
 - Added robust type handling for configuration values to prevent crashes on unexpected input types
+- Fixed "Keywords are not supported for Nova-3" error by automatically using `keyterm` parameter for Nova-3 models (and `keywords` for older models)
+- Upgraded deepgram-sdk to >=3.8.0 for better Nova-3 support
 
 ### New Features
 - **Model Selection**: Support for all Deepgram models including nova-3, nova-2 variants (general, meeting, phonecall, finance, conversationalai, voicemail, video, medical, drivethru, automotive), enhanced, and base models

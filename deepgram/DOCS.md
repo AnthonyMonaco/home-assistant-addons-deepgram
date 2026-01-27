@@ -223,9 +223,16 @@ Boost specific keywords to improve recognition accuracy.
 **Default:** None
 **Format:** Comma-separated list with optional intensifiers
 
+**Note:** For Nova-3 models, this parameter is automatically mapped to the `keyterm` API parameter (Nova-3 requires `keyterm` instead of `keywords`). For older models (Nova-2, Enhanced, Base), this uses the standard `keywords` parameter.
+
 **Example:**
 ```yaml
 keywords: "home assistant:2, alexa:-1, turn on:1"
+```
+
+**For Home Assistant:**
+```yaml
+keywords: "turn on, turn off, lights, temperature, lock, unlock"
 ```
 
 #### Option: `search`
