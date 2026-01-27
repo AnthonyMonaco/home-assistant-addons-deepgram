@@ -1,5 +1,9 @@
 ## 0.3.0
 
+### Bug Fixes
+- Fixed AttributeError when optional string parameters (keywords, search, replace) are passed as lists or None values
+- Added robust type handling for configuration values to prevent crashes on unexpected input types
+
 ### New Features
 - **Model Selection**: Support for all Deepgram models including nova-3, nova-2 variants (general, meeting, phonecall, finance, conversationalai, voicemail, video, medical, drivethru, automotive), enhanced, and base models
 - **Multi-Language Support**: Added support for 30+ languages and regional variants (English, Spanish, French, German, Portuguese, Italian, Dutch, Japanese, Korean, Chinese, Russian, Turkish, Polish, Swedish, Danish, Norwegian, Finnish, Hindi, Indonesian, Thai, Ukrainian)

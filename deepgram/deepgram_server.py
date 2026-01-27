@@ -27,6 +27,24 @@ _LOGGER = logging.getLogger(__name__)
 OPTIONS_FILE = Path("/data/options.json")
 
 
+def _to_string(value):
+    """
+    Convert a value to a string, handling None and lists.
+
+    Args:
+        value: The value to convert (can be str, list, None, etc.)
+
+    Returns:
+        str: String representation, empty string if None
+    """
+    if value is None:
+        return ""
+    if isinstance(value, list):
+        # Convert list to comma-separated string
+        return ",".join(str(v) for v in value if v)
+    return str(value)
+
+
 def load_config():
     """Load configuration from Home Assistant addon options."""
     try:
@@ -51,9 +69,10 @@ def load_config():
             "profanity_filter": options.get("profanity_filter", False),
             "numerals": options.get("numerals", True),
             "redact": options.get("redact", []) if options.get("redact") else [],
-            "keywords": options.get("keywords", ""),
-            "search": options.get("search", ""),
-            "replace": options.get("replace", ""),
+            # Convert keywords, search, replace to strings (handle None and lists)
+            "keywords": _to_string(options.get("keywords")),
+            "search": _to_string(options.get("search")),
+            "replace": _to_string(options.get("replace")),
             # Performance settings
             "timeout": int(options.get("timeout", 30)),
             "max_retries": int(options.get("max_retries", 3)),
@@ -384,17 +403,29 @@ class DeepgramEventHandler(AsyncEventHandler):
             if redact and isinstance(redact, list) and len(redact) > 0:
                 options.redact = redact
 
-            keywords = self.config.get("keywords", "")
-            if keywords and keywords.strip():
-                options.keywords = keywords.strip()
+            # Handle keywords (can be string or list)
+            keywords = self.config.get("keywords")
+            if keywords:
+                if isinstance(keywords, list):
+                    keywords = ",".join(str(k) for k in keywords if k)
+                if isinstance(keywords, str) and keywords.strip():
+                    options.keywords = keywords.strip()
 
-            search = self.config.get("search", "")
-            if search and search.strip():
-                options.search = search.strip()
+            # Handle search (can be string or list)
+            search = self.config.get("search")
+            if search:
+                if isinstance(search, list):
+                    search = ",".join(str(s) for s in search if s)
+                if isinstance(search, str) and search.strip():
+                    options.search = search.strip()
 
-            replace = self.config.get("replace", "")
-            if replace and replace.strip():
-                options.replace = replace.strip()
+            # Handle replace (can be string or list)
+            replace = self.config.get("replace")
+            if replace:
+                if isinstance(replace, list):
+                    replace = ",".join(str(r) for r in replace if r)
+                if isinstance(replace, str) and replace.strip():
+                    options.replace = replace.strip()
 
             _LOGGER.debug(f"Sending {len(wav_data)} bytes to Deepgram with model={self.model}, language={self.language}")
 
