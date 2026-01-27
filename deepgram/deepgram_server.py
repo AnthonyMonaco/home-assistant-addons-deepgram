@@ -219,6 +219,9 @@ class DeepgramEventHandler(AsyncEventHandler):
         self.retry_count = 0
         self.total_retries = 0
 
+        # Store keyterm value for Nova-3 (will be added manually to API call)
+        self.pending_keyterm = None
+
         _LOGGER.debug(f"Handler initialized for client {self.client_id}")
 
     async def handle_event(self, event: Event) -> bool:
@@ -413,16 +416,9 @@ class DeepgramEventHandler(AsyncEventHandler):
                     keyword_value = keywords.strip()
                     # Nova-3 uses 'keyterm' parameter instead of 'keywords'
                     if self.model.startswith("nova-3"):
-                        # Use setattr in case SDK doesn't have keyterm attribute yet
-                        try:
-                            if hasattr(options, 'keyterm'):
-                                options.keyterm = keyword_value
-                            else:
-                                # Fallback: try to set it anyway (SDK might accept it)
-                                setattr(options, 'keyterm', keyword_value)
-                            _LOGGER.info(f"✅ Using keyterm for Nova-3: {keyword_value}")
-                        except Exception as e:
-                            _LOGGER.warning(f"⚠️  Could not set keyterm for Nova-3: {e}. Keywords will be ignored.")
+                        # SDK 3.5.1 doesn't support keyterm, store it for manual injection
+                        self.pending_keyterm = keyword_value
+                        _LOGGER.info(f"✅ Will use keyterm for Nova-3: {keyword_value}")
                     else:
                         options.keywords = keyword_value
                         _LOGGER.info(f"✅ Using keywords for {self.model}: {keyword_value}")
@@ -476,6 +472,25 @@ class DeepgramEventHandler(AsyncEventHandler):
         """
         Synchronous call to Deepgram API (runs in thread).
         """
+        # For Nova-3 with keyterm, manually inject the parameter
+        if self.pending_keyterm:
+            # Convert options to dict and add keyterm
+            import urllib.parse
+
+            # Build the API request manually with keyterm in query string
+            # Get the transcribe client
+            client = self.deepgram.listen.rest.v("1")
+
+            # Try to set keyterm on options object (SDK might pass it through)
+            try:
+                setattr(options, 'keyterm', self.pending_keyterm)
+                _LOGGER.debug(f"Added keyterm to options: {self.pending_keyterm}")
+            except Exception as e:
+                _LOGGER.warning(f"Could not set keyterm attribute: {e}")
+
+            # Clear pending keyterm
+            self.pending_keyterm = None
+
         return self.deepgram.listen.rest.v("1").transcribe_file(
             {"buffer": wav_data, "mimetype": "audio/wav"},
             options

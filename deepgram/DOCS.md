@@ -219,17 +219,17 @@ redact:
 #### Option: `keywords`
 
 Boost specific keywords to improve recognition accuracy. This parameter automatically uses the correct API parameter based on the model:
-- **Nova-3:** Automatically converted to `keyterm` parameter (supports up to 500 tokens / ~100 words)
-- **Nova-2, Enhanced, Base:** Uses standard `keywords` parameter
+- **Nova-3:** Automatically converted to `keyterm` parameter (⚠️ experimental - may require testing)
+- **Nova-2, Enhanced, Base:** Uses standard `keywords` parameter (✅ fully supported)
 
 **Default:** None
 **Format:** Comma-separated list with optional intensifiers
 
 **Supported Models:**
-- ✅ **nova-3** - Uses keyterm (multilingual support)
-- ✅ **nova-2** (all variants) - Uses keywords
-- ✅ **enhanced** - Uses keywords
-- ✅ **base** - Uses keywords
+- ⚠️ **nova-3** - Uses keyterm (experimental with SDK 3.5.1 - if not working, use nova-2 for keyword support)
+- ✅ **nova-2** (all variants) - Uses keywords (fully supported)
+- ✅ **enhanced** - Uses keywords (fully supported)
+- ✅ **base** - Uses keywords (fully supported)
 
 **Example with Nova-3:**
 ```yaml
