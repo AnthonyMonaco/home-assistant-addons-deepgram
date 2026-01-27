@@ -80,21 +80,31 @@ class State:
 def make_info() -> Info:
     """Create Wyoming protocol info."""
     return Info(
-        asr=AsrProgram(
-            name="Deepgram",
-            description="Wyoming STT proxy to Deepgram",
-            attribution=Attribution(
+        asr=[
+            AsrProgram(
                 name="Deepgram",
-                url="https://deepgram.com",
-            ),
-            installed=True,
-            models=[
-                AsrModel(
-                    name='nova-3',
-                    description='Deepgram Nova-3',
-                )
-            ],
-        )
+                description="Wyoming STT proxy to Deepgram",
+                attribution=Attribution(
+                    name="Deepgram",
+                    url="https://deepgram.com",
+                ),
+                installed=True,
+                version="3.0.0",
+                models=[
+                    AsrModel(
+                        name='nova-3',
+                        description='Deepgram Nova-3',
+                        attribution=Attribution(
+                            name="Deepgram",
+                            url="https://deepgram.com",
+                        ),
+                        installed=True,
+                        version="3.0.0",
+                        languages=['en', 'en-US'],
+                    )
+                ],
+            )
+        ]
     )
 
 class EventHandler(AsyncEventHandler):
