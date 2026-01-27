@@ -133,8 +133,12 @@ class DeepgramEventHandler(AsyncEventHandler):
                 _LOGGER.info("📋 Received describe request")
                 info_event = self.wyoming_info.event()
                 _LOGGER.debug(f"Sending info event: {info_event}")
-                await self.write_event(info_event)
-                _LOGGER.debug("✅ Sent info response")
+                try:
+                    await self.write_event(info_event)
+                    _LOGGER.debug("✅ Sent info response")
+                except ConnectionResetError:
+                    _LOGGER.debug("Client closed connection after receiving info (normal behavior)")
+                    return False
                 return True
 
             # Transcribe request - set transcription parameters
