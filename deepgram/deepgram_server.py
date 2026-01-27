@@ -77,37 +77,30 @@ class State:
         if session_id in self.sessions:
             del self.sessions[session_id]
 
-class EventHandler(AsyncEventHandler):
-    WYOMING_INFO = Info(
-        asr=[
-            AsrProgram(
+def make_info() -> Info:
+    """Create Wyoming protocol info."""
+    return Info(
+        asr=AsrProgram(
+            name="Deepgram",
+            description="Wyoming STT proxy to Deepgram",
+            attribution=Attribution(
                 name="Deepgram",
-                description="Wyoming STT proxy to Deepgram",
-                attribution=Attribution(
-                    name="Deepgram",
-                    url="https://deepgram.com",
-                ),
-                installed=True,
-                version="3.0.0",
-                models=[
-                    AsrModel(
-                        name='nova-3',
-                        description='Deepgram Nova-3',
-                        attribution=Attribution(
-                            name="Deepgram",
-                            url="https://deepgram.com",
-                        ),
-                        installed=True,
-                        version="3.0.0",
-                        languages=['en', 'en-US'],
-                    )
-                ],
-            )
-        ]
+                url="https://deepgram.com",
+            ),
+            installed=True,
+            models=[
+                AsrModel(
+                    name='nova-3',
+                    description='Deepgram Nova-3',
+                )
+            ],
+        )
     )
 
+class EventHandler(AsyncEventHandler):
     def __init__(
         self,
+        wyoming_info: Info,
         *args,
         **kwargs,
     ) -> None:
@@ -116,11 +109,11 @@ class EventHandler(AsyncEventHandler):
 
         super().__init__(*args, **kwargs)
 
+        self._info = wyoming_info
         state = State()
         self.stt = DeepgramSTT()
         self.audio_data = b""
         self.sample_rate = 16000  # Default sample rate; can be adjusted
-        wyoming_info = self.WYOMING_INFO
         self.wyoming_info_event = wyoming_info.event()
 
     async def handle_event(self, event: Event) -> bool:
@@ -174,10 +167,12 @@ def load_api_key():
 
 async def main():
     """Starts the Wyoming Deepgram STT server using DeepgramServer."""
+    from functools import partial
+
     server = AsyncServer.from_uri('tcp://0.0.0.0:10301')
     try:
         logger.info('Starting Wyoming Server')
-        await server.run(EventHandler)
+        await server.run(partial(EventHandler, make_info()))
     except asyncio.CancelledError:
         await server.stop()
 
