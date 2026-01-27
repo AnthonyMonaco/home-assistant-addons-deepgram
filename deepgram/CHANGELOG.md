@@ -1,3 +1,49 @@
+## 0.3.0
+
+### New Features
+- **Model Selection**: Support for all Deepgram models including nova-3, nova-2 variants (general, meeting, phonecall, finance, conversationalai, voicemail, video, medical, drivethru, automotive), enhanced, and base models
+- **Multi-Language Support**: Added support for 30+ languages and regional variants (English, Spanish, French, German, Portuguese, Italian, Dutch, Japanese, Korean, Chinese, Russian, Turkish, Polish, Swedish, Danish, Norwegian, Finnish, Hindi, Indonesian, Thai, Ukrainian)
+- **Deepgram Features**: Added configurable transcription features:
+  - `smart_format` - Smart formatting for proper nouns and phrases
+  - `punctuate` - Automatic punctuation
+  - `diarize` - Speaker diarization (identify different speakers)
+  - `utterances` - Split into natural speech segments
+  - `profanity_filter` - Filter profanity from transcripts
+  - `numerals` - Convert numbers to numerals
+- **Advanced Features**: Added PII redaction, keyword boosting, search, and find/replace
+- **Performance Settings**:
+  - Configurable timeout (1-120 seconds, default: 30s)
+  - Retry logic with exponential backoff (0-5 retries, default: 3)
+  - Configurable retry delay (0.1-10.0 seconds, default: 1.0s)
+  - Adjustable log level (debug, info, warning, error)
+- **Wyoming Protocol Settings**: Added endpointing, VAD events, and utterance end timing controls
+
+### Improvements
+- Enhanced Wyoming info response to advertise all available models and languages
+- Improved error handling with distinction between timeout, network, and API errors
+- Added exponential backoff retry strategy with jitter to prevent thundering herd
+- Graceful degradation on timeout (returns empty transcript instead of crashing)
+- Enhanced logging with detailed debug information and configuration summary
+- Improved configuration validation with range checking and sensible defaults
+- Better error messages for troubleshooting
+
+### Performance
+- Implemented timeout handling to prevent long waits on slow API calls
+- Added retry logic for transient network failures
+- Optimized connection pooling with keepalive configuration
+- Added jitter to retry delays for better distributed retry behavior
+
+### Documentation
+- Comprehensive configuration reference with examples
+- Model selection guide with use case recommendations
+- Language support documentation
+- Performance tuning guide with trade-off analysis
+- Troubleshooting guide for common issues
+- Configuration examples for different scenarios (high accuracy, low latency, multi-language, medical)
+
+### Breaking Changes
+- None (all new options are optional with backward-compatible defaults)
+
 ## 0.2.2
 
 - Upgraded Deepgram SDK from 3.x to 5.x for AsyncDeepgramClient support

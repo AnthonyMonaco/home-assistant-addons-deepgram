@@ -1,8 +1,8 @@
 name: Deepgram
 description: Speech-to-text with Deepgram. Be sure to get an API key from
-             Deepgram and set it in the configuration.
+  Deepgram and set it in the configuration.
 url: https://github.com/brian-makes-things/home-assistant-addons/deepgram
-version: "0.2.2"
+version: "0.3.0"
 slug: "deepgram"
 init: false
 discovery:
@@ -15,3 +15,59 @@ ports:
   "10301/tcp": null
 schema:
   api_key: str
+  model: list(nova-3|nova-2|nova-2-general|nova-2-meeting|nova-2-phonecall|nova-2-finance|nova-2-conversationalai|nova-2-voicemail|nova-2-video|nova-2-medical|nova-2-drivethru|nova-2-automotive|enhanced|base)?
+  language: list(en|en-US|en-GB|en-AU|en-NZ|en-IN|es|es-419|fr|fr-CA|de|de-CH|pt|pt-BR|pt-PT|it|nl|ja|ko|zh|zh-CN|zh-TW|ru|tr|pl|sv|da|no|fi|hi|id|th|uk)?
+  profile: list(fast_commands|balanced|noisy_room)?
+  smart_format: bool?
+  punctuate: bool?
+  diarize: bool?
+  utterances: bool?
+  vad_events: bool?
+  endpointing: int(0,2000)?
+  utterance_end_ms: int(0,3000)?
+  profanity_filter: bool?
+  redact: list(pci|numbers|ssn)?
+  keywords:
+    - str
+  search: str?
+  replace: str?
+  numerals: bool?
+  timeout: int(1,120)?
+  max_retries: int(0,5)?
+  retry_delay: float(0.1,10.0)?
+  log_level: list(debug|info|warning|error)?
+options:
+  model: nova-3
+  language: en-US
+  profile: fast_commands
+  smart_format: true
+  punctuate: false
+  diarize: false
+  utterances: false
+  vad_events: true
+  endpointing: 300
+  utterance_end_ms: 700
+  profanity_filter: false
+  numerals: true
+  keywords:
+    - kitchen
+    - living room
+    - bedroom
+    - bathroom
+    - basement
+    - lights
+    - light
+    - lamp
+    - fan
+    - thermostat
+    - temperature
+    - lock
+    - unlock
+    - garage
+    - door
+    - sconces
+    - chandelier
+  timeout: 20
+  max_retries: 2
+  retry_delay: 0.7
+  log_level: info
