@@ -18,7 +18,7 @@ from wyoming.server import AsyncEventHandler, AsyncServer
 
 # Configure logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 _LOGGER = logging.getLogger(__name__)
