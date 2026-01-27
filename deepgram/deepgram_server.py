@@ -403,25 +403,18 @@ class DeepgramEventHandler(AsyncEventHandler):
             if redact and isinstance(redact, list) and len(redact) > 0:
                 options.redact = redact
 
-            # Handle keywords/keyterm (can be string or list)
-            # Nova-3 uses 'keyterm', older models use 'keywords'
+            # Handle keywords (can be string or list)
+            # Note: Nova-3 requires 'keyterm' instead of 'keywords', but SDK 3.5.1 doesn't support it
+            # For Nova-3, we skip keywords to avoid API errors
             keywords = self.config.get("keywords")
-            if keywords:
+            if keywords and not self.model.startswith("nova-3"):
                 if isinstance(keywords, list):
                     keywords = ",".join(str(k) for k in keywords if k)
                 if isinstance(keywords, str) and keywords.strip():
-                    keyword_value = keywords.strip()
-                    # Nova-3 uses 'keyterm' parameter instead of 'keywords'
-                    if self.model.startswith("nova-3"):
-                        try:
-                            options.keyterm = keyword_value
-                            _LOGGER.debug(f"Using keyterm (nova-3): {keyword_value}")
-                        except AttributeError:
-                            # SDK version doesn't support keyterm yet
-                            _LOGGER.warning(f"⚠️  SDK doesn't support 'keyterm' parameter. Keywords will be ignored for nova-3. Please upgrade deepgram-sdk.")
-                    else:
-                        options.keywords = keyword_value
-                        _LOGGER.debug(f"Using keywords: {keyword_value}")
+                    options.keywords = keywords.strip()
+                    _LOGGER.debug(f"Using keywords: {keywords.strip()}")
+            elif keywords and self.model.startswith("nova-3"):
+                _LOGGER.info(f"⚠️  Keywords are not supported with Nova-3 model (requires 'keyterm' which needs SDK upgrade). Keywords will be ignored.")
 
             # Handle search (can be string or list)
             search = self.config.get("search")

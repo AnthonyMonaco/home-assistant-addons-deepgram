@@ -223,15 +223,23 @@ Boost specific keywords to improve recognition accuracy.
 **Default:** None
 **Format:** Comma-separated list with optional intensifiers
 
-**Note:** For Nova-3 models, this parameter is automatically mapped to the `keyterm` API parameter (Nova-3 requires `keyterm` instead of `keywords`). For older models (Nova-2, Enhanced, Base), this uses the standard `keywords` parameter.
+**Important Limitation:** Keywords are **not supported with Nova-3 model** due to API changes (Nova-3 requires `keyterm` parameter which needs a newer SDK). Keywords work with Nova-2, Enhanced, and Base models. If you need keyword boosting, use `model: nova-2` instead of `nova-3`.
+
+**Supported Models for Keywords:**
+- ✅ nova-2 (all variants)
+- ✅ enhanced
+- ✅ base
+- ❌ nova-3 (not supported - keywords will be ignored)
 
 **Example:**
 ```yaml
+model: nova-2
 keywords: "home assistant:2, alexa:-1, turn on:1"
 ```
 
 **For Home Assistant:**
 ```yaml
+model: nova-2-general
 keywords: "turn on, turn off, lights, temperature, lock, unlock"
 ```
 
@@ -453,15 +461,40 @@ timeout: 60
 3. Check your Deepgram account plan limits
 4. Contact Deepgram support to increase rate limits
 
+### Keywords Not Working with Nova-3
+
+**Symptoms:** Warning in logs: "Keywords are not supported with Nova-3 model"
+
+**Root Cause:** Deepgram's Nova-3 API requires the `keyterm` parameter instead of `keywords`, which is not supported in the current SDK version (3.5.1).
+
+**Solutions:**
+1. **Use Nova-2 for keyword boosting:**
+   ```yaml
+   model: nova-2
+   keywords: "turn on, turn off, lights, temperature"
+   ```
+2. **Use domain-specific Nova-2 models:**
+   ```yaml
+   model: nova-2-general
+   keywords: "your, custom, keywords"
+   ```
+3. **Use Nova-3 without keywords** (still excellent accuracy):
+   ```yaml
+   model: nova-3
+   # Don't configure keywords parameter
+   ```
+
+**Note:** Keywords work perfectly with all Nova-2 models, Enhanced, and Base. Only Nova-3 has this limitation due to API changes.
+
 ### Poor Transcription Accuracy
 
 **Symptoms:** Wrong words, missing words
 
 **Solutions:**
-1. Use `nova-3` model for best accuracy
-2. Enable `smart_format` for better formatting
-3. Use domain-specific models (medical, finance, etc.)
-4. Use `keywords` to boost recognition of specific terms
+1. Use `nova-3` model for best accuracy (note: keywords not supported)
+2. Use `nova-2` with `keywords` to boost specific terms
+3. Enable `smart_format` for better formatting
+4. Use domain-specific models (medical, finance, etc.)
 5. Check audio quality (sample rate, noise level)
 6. Verify correct `language` setting
 

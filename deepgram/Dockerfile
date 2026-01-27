@@ -2,7 +2,7 @@ ARG BUILD_FROM
 FROM $BUILD_FROM
 
 RUN apk add --no-cache python3 py3-pip
-RUN pip3 install "deepgram-sdk>=3.8.0" "wyoming>=1.8.0" --break-system-packages
+RUN pip3 install "deepgram-sdk==3.5.1" "wyoming>=1.8.0" --break-system-packages
 
 WORKDIR /app
 COPY rootfs /
