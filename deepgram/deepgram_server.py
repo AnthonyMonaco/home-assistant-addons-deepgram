@@ -57,33 +57,33 @@ def make_wyoming_info() -> Info:
         asr=[
             AsrProgram(
                 name="deepgram",
-                description="Deepgram cloud-based speech recognition",
                 attribution=Attribution(
                     name="Deepgram",
                     url="https://deepgram.com"
                 ),
                 installed=True,
+                description="Deepgram cloud-based speech recognition",
                 version="3.0.0",
                 models=[
                     AsrModel(
                         name="nova-3",
-                        description="Deepgram Nova-3 (newest, most accurate)",
                         attribution=Attribution(
                             name="Deepgram",
                             url="https://deepgram.com"
                         ),
                         installed=True,
+                        description="Deepgram Nova-3 (newest, most accurate)",
                         version="3.0.0",
                         languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
                     ),
                     AsrModel(
                         name="nova-2",
-                        description="Deepgram Nova-2 (balanced)",
                         attribution=Attribution(
                             name="Deepgram",
                             url="https://deepgram.com"
                         ),
                         installed=True,
+                        description="Deepgram Nova-2 (balanced)",
                         version="2.0.0",
                         languages=["en", "en-US", "en-GB", "es", "fr", "de", "pt", "it"]
                     )
