@@ -218,30 +218,40 @@ redact:
 
 #### Option: `keywords`
 
-Boost specific keywords to improve recognition accuracy.
+Boost specific keywords to improve recognition accuracy. This parameter automatically uses the correct API parameter based on the model:
+- **Nova-3:** Automatically converted to `keyterm` parameter (supports up to 500 tokens / ~100 words)
+- **Nova-2, Enhanced, Base:** Uses standard `keywords` parameter
 
 **Default:** None
 **Format:** Comma-separated list with optional intensifiers
 
-**Important Limitation:** Keywords are **not supported with Nova-3 model** due to API changes (Nova-3 requires `keyterm` parameter which needs a newer SDK). Keywords work with Nova-2, Enhanced, and Base models. If you need keyword boosting, use `model: nova-2` instead of `nova-3`.
+**Supported Models:**
+- ✅ **nova-3** - Uses keyterm (multilingual support)
+- ✅ **nova-2** (all variants) - Uses keywords
+- ✅ **enhanced** - Uses keywords
+- ✅ **base** - Uses keywords
 
-**Supported Models for Keywords:**
-- ✅ nova-2 (all variants)
-- ✅ enhanced
-- ✅ base
-- ❌ nova-3 (not supported - keywords will be ignored)
+**Example with Nova-3:**
+```yaml
+model: nova-3
+keywords: "home assistant, turn on, turn off, lights, temperature, lock, unlock"
+```
 
-**Example:**
+**Example with Nova-2:**
 ```yaml
 model: nova-2
 keywords: "home assistant:2, alexa:-1, turn on:1"
 ```
 
-**For Home Assistant:**
+**For Home Assistant (recommended):**
 ```yaml
-model: nova-2-general
-keywords: "turn on, turn off, lights, temperature, lock, unlock"
+model: nova-3
+language: en-US
+smart_format: true
+keywords: "kitchen, bedroom, bathroom, living room, lights, thermostat, lock, garage, door"
 ```
+
+**Note:** Nova-3 keyterm prompting supports up to 500 tokens (~100 words), allowing you to boost recognition of brand names, industry jargon, proper nouns, and other mission-critical vocabulary.
 
 #### Option: `search`
 
@@ -461,42 +471,24 @@ timeout: 60
 3. Check your Deepgram account plan limits
 4. Contact Deepgram support to increase rate limits
 
-### Keywords Not Working with Nova-3
-
-**Symptoms:** Warning in logs: "Keywords are not supported with Nova-3 model"
-
-**Root Cause:** Deepgram's Nova-3 API requires the `keyterm` parameter instead of `keywords`, which is not supported in the current SDK version (3.5.1).
-
-**Solutions:**
-1. **Use Nova-2 for keyword boosting:**
-   ```yaml
-   model: nova-2
-   keywords: "turn on, turn off, lights, temperature"
-   ```
-2. **Use domain-specific Nova-2 models:**
-   ```yaml
-   model: nova-2-general
-   keywords: "your, custom, keywords"
-   ```
-3. **Use Nova-3 without keywords** (still excellent accuracy):
-   ```yaml
-   model: nova-3
-   # Don't configure keywords parameter
-   ```
-
-**Note:** Keywords work perfectly with all Nova-2 models, Enhanced, and Base. Only Nova-3 has this limitation due to API changes.
-
 ### Poor Transcription Accuracy
 
 **Symptoms:** Wrong words, missing words
 
 **Solutions:**
-1. Use `nova-3` model for best accuracy (note: keywords not supported)
-2. Use `nova-2` with `keywords` to boost specific terms
+1. Use `nova-3` model for best accuracy
+2. Use `keywords` parameter to boost recognition of specific terms (works with all models including Nova-3)
 3. Enable `smart_format` for better formatting
 4. Use domain-specific models (medical, finance, etc.)
 5. Check audio quality (sample rate, noise level)
 6. Verify correct `language` setting
+
+**Example with keyword boosting:**
+```yaml
+model: nova-3
+keywords: "turn on, turn off, lights, lock, unlock, garage, thermostat"
+smart_format: true
+```
 
 ### Retry Exhaustion
 

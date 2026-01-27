@@ -36,6 +36,10 @@ schema:
   max_retries: int(0,5)?
   retry_delay: float(0.1,10.0)?
   log_level: list(debug|info|warning|error)?
+  interim_results: bool?
+  no_delay: bool?
+  filler_words: bool?
+  log_request_params: bool?
 options:
   model: nova-3
   language: en-US
@@ -71,3 +75,7 @@ options:
   max_retries: 2
   retry_delay: 0.7
   log_level: info
+  interim_results: true
+  no_delay: true
+  filler_words: false
+  log_request_params: false

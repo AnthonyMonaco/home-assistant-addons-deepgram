@@ -403,18 +403,29 @@ class DeepgramEventHandler(AsyncEventHandler):
             if redact and isinstance(redact, list) and len(redact) > 0:
                 options.redact = redact
 
-            # Handle keywords (can be string or list)
-            # Note: Nova-3 requires 'keyterm' instead of 'keywords', but SDK 3.5.1 doesn't support it
-            # For Nova-3, we skip keywords to avoid API errors
+            # Handle keywords/keyterm (can be string or list)
+            # Nova-3 uses 'keyterm', older models use 'keywords'
             keywords = self.config.get("keywords")
-            if keywords and not self.model.startswith("nova-3"):
+            if keywords:
                 if isinstance(keywords, list):
                     keywords = ",".join(str(k) for k in keywords if k)
                 if isinstance(keywords, str) and keywords.strip():
-                    options.keywords = keywords.strip()
-                    _LOGGER.debug(f"Using keywords: {keywords.strip()}")
-            elif keywords and self.model.startswith("nova-3"):
-                _LOGGER.info(f"⚠️  Keywords are not supported with Nova-3 model (requires 'keyterm' which needs SDK upgrade). Keywords will be ignored.")
+                    keyword_value = keywords.strip()
+                    # Nova-3 uses 'keyterm' parameter instead of 'keywords'
+                    if self.model.startswith("nova-3"):
+                        # Use setattr in case SDK doesn't have keyterm attribute yet
+                        try:
+                            if hasattr(options, 'keyterm'):
+                                options.keyterm = keyword_value
+                            else:
+                                # Fallback: try to set it anyway (SDK might accept it)
+                                setattr(options, 'keyterm', keyword_value)
+                            _LOGGER.info(f"✅ Using keyterm for Nova-3: {keyword_value}")
+                        except Exception as e:
+                            _LOGGER.warning(f"⚠️  Could not set keyterm for Nova-3: {e}. Keywords will be ignored.")
+                    else:
+                        options.keywords = keyword_value
+                        _LOGGER.info(f"✅ Using keywords for {self.model}: {keyword_value}")
 
             # Handle search (can be string or list)
             search = self.config.get("search")

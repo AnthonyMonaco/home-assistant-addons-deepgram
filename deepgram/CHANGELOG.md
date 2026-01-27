@@ -3,7 +3,8 @@
 ### Bug Fixes
 - Fixed AttributeError when optional string parameters (keywords, search, replace) are passed as lists or None values
 - Added robust type handling for configuration values to prevent crashes on unexpected input types
-- Fixed "Keywords are not supported for Nova-3" error by skipping keywords for Nova-3 models (keywords remain supported for Nova-2, Enhanced, and Base models)
+- Fixed "Keywords are not supported for Nova-3" error by implementing automatic keyterm/keywords parameter selection based on model
+- Upgraded deepgram-sdk to >=4.8.0 for Nova-3 keyterm support
 
 ### New Features
 - **Model Selection**: Support for all Deepgram models including nova-3, nova-2 variants (general, meeting, phonecall, finance, conversationalai, voicemail, video, medical, drivethru, automotive), enhanced, and base models
@@ -45,9 +46,6 @@
 - Performance tuning guide with trade-off analysis
 - Troubleshooting guide for common issues
 - Configuration examples for different scenarios (high accuracy, low latency, multi-language, medical)
-
-### Known Limitations
-- **Keywords parameter not supported with Nova-3**: Due to API changes (Nova-3 requires `keyterm` instead of `keywords`), keyword boosting is not available when using the `nova-3` model. Keywords work with `nova-2`, `enhanced`, and `base` models. If you need keyword boosting, use `model: nova-2` or a Nova-2 variant.
 
 ### Breaking Changes
 - None (all new options are optional with backward-compatible defaults)
